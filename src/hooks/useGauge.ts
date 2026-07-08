@@ -24,7 +24,7 @@ const useGauge = () => {
 
 				if (payload.connected && typeof payload.value === 'number' && Number.isFinite(payload.value)) {
 					setMeasuredSagittaDeviationInput(Number(payload.value));
-					setDeviceStatus('Mitutoyo connected on COM3');
+					setDeviceStatus('Device connected on COM3');
 				} else if (payload.error) {
 					setDeviceStatus(`Reader error: ${payload.error}`);
 				} else {
@@ -32,7 +32,7 @@ const useGauge = () => {
 				}
 			} catch {
 				if (!cancelled) {
-					setDeviceStatus('Cannot reach reader service. Start npm run serial');
+					setDeviceStatus('Error: Cannot reach reader service. Start npm run serial');
 				}
 			}
 		};
