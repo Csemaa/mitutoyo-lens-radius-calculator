@@ -5,11 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "serial": "node serial-bridge.mjs",
+    "serial:debug": "node serial-bridge.mjs --debug-bytes --debug-parsed",
+    "serial:poll-debug": "node serial-bridge.mjs --debug-bytes --debug-parsed --debug-poll",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.36.0",
+    "@emotion/react": "^11.14.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "serialport": "^13.0.0"

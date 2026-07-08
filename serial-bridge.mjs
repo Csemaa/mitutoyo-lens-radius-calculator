@@ -7,8 +7,11 @@ const SERIAL_PORT = process.env.SERIAL_PORT ?? 'COM3';
 const BAUD_RATE = Number(process.env.SERIAL_BAUD ?? '9600');
 const HTTP_HOST = process.env.BRIDGE_HOST ?? '127.0.0.1';
 const HTTP_PORT = Number(process.env.BRIDGE_PORT ?? '8000');
+const POLL_INTERVAL_MS = Number(process.env.SERIAL_POLL_MS ?? '300');
+const POLL_COMMAND = Buffer.from([49, 13]); // ASCII: "1\r"
 const DEBUG_BYTES = process.argv.includes('--debug-bytes');
 const DEBUG_PARSED = process.argv.includes('--debug-parsed');
+const DEBUG_POLL = process.argv.includes('--debug-poll');
 
 const state = {
   port: SERIAL_PORT,
@@ -81,6 +84,8 @@ function startHttpServer() {
 }
 
 function startSerialReader() {
+	let pollTimer = null;
+
   const port = new SerialPort({
     path: SERIAL_PORT,
     baudRate: BAUD_RATE,
@@ -96,11 +101,38 @@ function startSerialReader() {
     state.connected = true;
     state.error = null;
     console.log(`Serial reader listening on ${SERIAL_PORT} @ ${BAUD_RATE}`);
+
+    const sendPoll = () => {
+      if (!port.isOpen) {
+        return;
+      }
+
+      port.write(POLL_COMMAND, (error) => {
+        if (error) {
+          state.error = error.message;
+          if (DEBUG_POLL) {
+            console.log(`[SERIAL POLL] write error=${error.message}`);
+          }
+          return;
+        }
+
+        if (DEBUG_POLL) {
+          console.log('[SERIAL POLL] sent=31 0D ascii=1\\r');
+        }
+      });
+    };
+
+    sendPoll();
+    pollTimer = setInterval(sendPoll, POLL_INTERVAL_MS);
   });
 
   port.on('close', () => {
     state.connected = false;
     state.error = 'Serial port closed';
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   });
 
   port.on('error', (error) => {
