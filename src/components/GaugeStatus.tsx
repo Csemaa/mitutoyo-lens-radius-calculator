@@ -1,4 +1,4 @@
-import { Status } from '@chakra-ui/react';
+import { Status, Text } from '@chakra-ui/react';
 
 interface Props {
     status: string;
@@ -9,7 +9,7 @@ const GaugeStatus = ({status}: Props) => {
   return (
     <Status.Root colorPalette={isActive ? "green" : "red"}>
         <Status.Indicator />
-        {isActive ? 'Online' : 'Offline'} - {status}
+        {isActive ? 'Online' : 'Offline'} - <Text color='fg.subtle'>{status}</Text>
     </Status.Root>
   )
 }

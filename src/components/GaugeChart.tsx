@@ -25,7 +25,15 @@ const GaugeChart = ({ currentValue, maxSagittaDeviation }: Props) => {
 		});
 
 	return (
-		<Chart.Root width='100%' maxW='420px' mx='auto' overflow='hidden' chart={chart} h={{ base: '220px', md: '260px' }}>
+		<Chart.Root
+			width='100%'
+			maxW='420px'
+			mx='auto'
+			overflow='hidden'
+			chart={chart}
+			h={{ base: '190px', md: '240px' }}
+			mb={{ base: -8, md: -12 }}
+		>
 			<ResponsiveContainer width='100%' height='100%'>
 				<PieChart>
 					<Tooltip cursor={false} animationDuration={100} content={<Chart.Tooltip hideLabel />} />
