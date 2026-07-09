@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "serial": "node serial-bridge.mjs",
-    "serial:debug": "node serial-bridge.mjs --debug-bytes --debug-parsed",
-    "serial:poll-debug": "node serial-bridge.mjs --debug-bytes --debug-parsed --debug-poll",
+    "serial": "node --env-file=.env serial-bridge.mjs",
+    "serial:debug": "node --env-file=.env serial-bridge.mjs --debug-bytes --debug-parsed",
+    "serial:poll-debug": "node --env-file=.env serial-bridge.mjs --debug-bytes --debug-parsed --debug-poll",
+    "start": "concurrently \"npm run serial\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -16,9 +17,11 @@
     "@chakra-ui/charts": "^3.36.0",
     "@chakra-ui/react": "^3.36.0",
     "@emotion/react": "^11.14.0",
+    "i18next": "^26.1.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.7.0",
+    "react-i18next": "^16.1.6",
     "recharts": "^3.9.2",
     "serialport": "^13.0.0"
   },
@@ -28,6 +31,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "concurrently": "^9.2.1",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",

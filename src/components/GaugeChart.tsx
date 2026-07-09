@@ -1,5 +1,6 @@
 import { Chart, useChart } from '@chakra-ui/charts';
 import { Label, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 type ChartPoint = {
 	name: string;
@@ -13,14 +14,15 @@ interface Props {
 }
 
 const GaugeChart = ({ currentValue, maxSagittaDeviation }: Props) => {
+	const { t } = useTranslation();
 	const safeMaxDeviation = Number.isFinite(maxSagittaDeviation) && maxSagittaDeviation > 0 ? maxSagittaDeviation : 1;
 	const currentDeviation = Math.max(0, currentValue * 1000);
 	const clampedDeviation = Math.min(currentDeviation, safeMaxDeviation);
 
 	const chart = useChart<ChartPoint>({
 			data: [
-				{ name: 'current', value: clampedDeviation, color: 'red.solid' },
-				{ name: 'max', value: safeMaxDeviation - clampedDeviation, color: 'green.solid' },
+				{ name: t('gaugeCurrent'), value: clampedDeviation, color: 'red.solid' },
+				{ name: t('gaugeMax'), value: safeMaxDeviation - clampedDeviation, color: 'green.solid' },
 			],
 		});
 
@@ -36,7 +38,7 @@ const GaugeChart = ({ currentValue, maxSagittaDeviation }: Props) => {
 		>
 			<ResponsiveContainer width='100%' height='100%'>
 				<PieChart>
-					<Tooltip cursor={false} animationDuration={100} content={<Chart.Tooltip hideLabel />} />
+					<Tooltip cursor={false} animationDuration={50} content={<Chart.Tooltip hideLabel />} />
 					<Pie
 						cx='50%'
 						cy='60%'
@@ -58,7 +60,7 @@ const GaugeChart = ({ currentValue, maxSagittaDeviation }: Props) => {
 						<Chart.RadialText
 							viewBox={viewBox}
 							title={(currentValue ?? 0).toFixed(3)}
-							description="mm"
+							description={t('mm')}
 						/>
 						)}
 					/>

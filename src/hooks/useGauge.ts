@@ -5,7 +5,7 @@ const MEASUREMENT_ENDPOINT = 'http://127.0.0.1:8000/measurement';
 
 const useGauge = () => {
 	const [measuredSagittaDeviationInput, setMeasuredSagittaDeviationInput] = useState<number | null>(null);
-	const [deviceStatus, setDeviceStatus] = useState<string>('Device reader not connected');
+	const [deviceStatus, setDeviceStatus] = useState<string>('Device not connected');
 
 	useEffect(() => {
 		let cancelled = false;
@@ -32,7 +32,7 @@ const useGauge = () => {
 				}
 			} catch {
 				if (!cancelled) {
-					setDeviceStatus('Error: Cannot reach reader service. Start npm run serial');
+					setDeviceStatus('Error: Cannot reach reader service');
 				}
 			}
 		};
