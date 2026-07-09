@@ -2,6 +2,12 @@ import http from 'node:http';
 import process from 'node:process';
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
+import fs from 'node:fs';
+import os from 'node:os';
+
+const DEVICE_MODE = process.env.DEVICE_MODE ?? 'serial'; // 'serial' or 'hid'
+const HID_PATH = process.env.HID_PATH ?? '/dev/hidraw3';
+
 
 const SERIAL_PORT = process.env.SERIAL_PORT ?? 'COM3';
 const BAUD_RATE = Number(process.env.SERIAL_BAUD ?? '9600');
@@ -188,5 +194,108 @@ function startSerialReader() {
   tryOpen();
 }
 
+function startHidReader() {
+  let pollTimer = null;
+  let buffer = Buffer.alloc(0);
+
+  console.log(`HID reader listening on ${HID_PATH}`);
+
+  // Open HID device read/write so we can send poll commands
+  let fd;
+  try {
+    fd = fs.openSync(HID_PATH, fs.constants.O_RDWR);
+  } catch (error) {
+    state.connected = false;
+    state.error = `Failed to open HID: ${error.message}`;
+    console.error(state.error);
+    return;
+  }
+
+  state.connected = true;
+  state.error = null;
+
+  // Function to send poll command (same POLL_COMMAND as serial)
+  const sendPoll = () => {
+    try {
+      fs.writeSync(fd, POLL_COMMAND);
+      if (DEBUG_POLL) {
+        console.log('[HID POLL] sent=31 0D ascii=1\\r');
+      }
+    } catch (error) {
+      state.error = error.message;
+      if (DEBUG_POLL) {
+        console.log(`[HID POLL] write error=${error.message}`);
+      }
+    }
+  };
+
+  // Start polling
+  sendPoll();
+  pollTimer = setInterval(sendPoll, POLL_INTERVAL_MS);
+
+  // Simple read loop using a separate timer
+  const READ_CHUNK = 64;
+
+  const readLoop = () => {
+    try {
+      const chunk = Buffer.alloc(READ_CHUNK);
+      const bytesRead = fs.readSync(fd, chunk, 0, READ_CHUNK, null);
+
+      if (bytesRead > 0) {
+        const data = chunk.subarray(0, bytesRead);
+
+        if (DEBUG_BYTES) {
+          const hex = [...data].map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+          const ascii = data.toString('ascii').replace(/[\r\n]+$/, '');
+          console.log(`[HID RAW] len=${bytesRead} hex=${hex} ascii=${ascii}`);
+        }
+
+        // Accumulate and split on \r (same framing as serial)
+        buffer = Buffer.concat([buffer, data]);
+
+        let idx;
+        while ((idx = buffer.indexOf('\r')) !== -1) {
+          const lineBuf = buffer.subarray(0, idx);
+          buffer = buffer.subarray(idx + 1);
+
+          const line = lineBuf.toString('ascii').trim();
+          if (!line) {
+            continue;
+          }
+
+          const parsed = parseMeasurement(line);
+          if (Number.isFinite(parsed)) {
+            state.value = parsed;
+            state.raw = line;
+            state.updated_at = new Date().toISOString();
+            state.error = null;
+            if (DEBUG_PARSED) {
+              console.log(`[HID PARSED] value=${parsed} line=${line}`);
+            }
+          } else if (DEBUG_PARSED) {
+            console.log(`[HID PARSED] skipped line=${line}`);
+          }
+        }
+      }
+    } catch (error) {
+      state.connected = false;
+      state.error = `HID read error: ${error.message}`;
+      console.error(state.error);
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+    }
+  };
+
+  // Poll for data regularly
+  setInterval(readLoop, 50);
+}
+
+
 startHttpServer();
-startSerialReader();
+
+if (DEVICE_MODE === 'hid') {
+  startHidReader();
+} else {
+  startSerialReader();
+}
