@@ -6,7 +6,8 @@ export const calculateRadius = (sagitta: number, diameter: number, lensType: 'mi
 };
 
 //calculate saggita in mm
-export const calculateSagitta = (radius: number, diameter: number) => {
+export const calculateSagitta = (radius: number, diameter: number, lensType: 'minus' | 'plus') => {
 	const halfChord = diameter / 2;
-	return radius - Math.sqrt(Math.pow(radius, 2) - Math.pow(halfChord, 2));
+	const multiplier = lensType === 'minus' ? -1 : 1;
+	return radius - multiplier * (Math.sqrt(Math.pow(radius, 2) - Math.pow(halfChord, 2)));
 };

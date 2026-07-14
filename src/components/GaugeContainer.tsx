@@ -19,20 +19,20 @@ const GaugeContainer = () => {
 
 	const calculatedRadius = useMemo(() => {
 		if (measuredSagittaDeviationInput !== null && diameterValue > 0 && etalonRadiusValue > 0) {
-			const etalonSagitta = calculateSagitta(etalonRadiusValue, diameterValue);
+			const etalonSagitta = calculateSagitta(etalonRadiusValue, diameterValue, lensType);
 			return calculateRadius(etalonSagitta - Number(measuredSagittaDeviationInput), diameterValue, lensType);
 		}
 	}, [measuredSagittaDeviationInput, diameterValue, etalonRadiusValue, lensType]);
 
 	const sagittaDeviationInMicron = useMemo(() => {
-		const etalonSagitta = calculateSagitta(etalonRadiusValue, diameterValue);
-		const lensSagitta = calculateSagitta(lensRadius, diameterValue);
+		const etalonSagitta = calculateSagitta(etalonRadiusValue, diameterValue, lensType);
+		const lensSagitta = calculateSagitta(lensRadius, diameterValue, lensType);
 		console.log('etalonSagitta:', etalonSagitta, 'lensSagitta:', lensSagitta);
-		return Math.abs(etalonSagitta - lensSagitta) * 1000;
-	}, [etalonRadiusValue, lensRadius, diameterValue]);
+		return -1 * (etalonSagitta - lensSagitta) * 1000;
+	}, [etalonRadiusValue, lensRadius, diameterValue, lensType]);
 
 	const measuredDeviationInMicron = useMemo(() => (measuredSagittaDeviationInput ?? 0) * 1000, [measuredSagittaDeviationInput]);
-	const isWithinTolerance = measuredDeviationInMicron <= sagittaDeviationInMicron;
+	const isWithinTolerance = Math.abs(measuredDeviationInMicron) <= Math.abs(sagittaDeviationInMicron);
 
 	const formatMicron = (value: number) => (Number.isFinite(value) ? `${value.toFixed(2)} µm` : '--');
 	const formatRadius = (value?: number) => (value !== undefined && Number.isFinite(value) ? `${value.toFixed(4)} mm` : '--');
@@ -115,7 +115,7 @@ const GaugeContainer = () => {
 						<Box ms={4} mt={1}>
 							<GaugeStatus status={deviceStatus} />
 						</Box>
-                    	<GaugeChart currentValue={measuredSagittaDeviationInput ?? 0} maxSagittaDeviation={sagittaDeviationInMicron} />
+                    	<GaugeChart currentValue={measuredSagittaDeviationInput ?? 0} maxSagittaDeviation={Math.abs(sagittaDeviationInMicron)} />
 					</Box>
                     <Box
 						p={4}

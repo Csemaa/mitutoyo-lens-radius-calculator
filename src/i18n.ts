@@ -20,6 +20,7 @@ const resources = {
       'Error: Cannot reach reader service': 'Hiba: Nem lehet elérni a szervert.',
       'Online': 'Elérhető',
       'Offline': 'Inaktív',
+      'Lens type': 'Lencse típusa',
     },
   },
    de: {
@@ -35,7 +36,8 @@ const resources = {
       'Device connected on COM3': 'Gerät verbunden an COM3',
       'Reader error: Serial port closed': 'Lesefehler:',
       'Waiting for device values...': 'Warten auf Gerätewerte...',
-      'Error: Cannot reach reader service': 'Fehler: Lesedienst nicht erreichbar'
+      'Error: Cannot reach reader service': 'Fehler: Lesedienst nicht erreichbar',
+      'Lens type': 'Linsentyp',
     },
   },
 };

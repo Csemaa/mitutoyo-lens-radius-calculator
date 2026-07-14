@@ -16,7 +16,7 @@ interface Props {
 const GaugeChart = ({ currentValue, maxSagittaDeviation }: Props) => {
 	const { t } = useTranslation();
 	const safeMaxDeviation = Number.isFinite(maxSagittaDeviation) && maxSagittaDeviation > 0 ? maxSagittaDeviation : 1;
-	const currentDeviation = Math.max(0, currentValue * 1000);
+	const currentDeviation = Math.abs(currentValue * 1000);
 	const clampedDeviation = Math.min(currentDeviation, safeMaxDeviation);
 
 	const chart = useChart<ChartPoint>({
