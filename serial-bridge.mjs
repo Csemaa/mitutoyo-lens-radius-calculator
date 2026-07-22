@@ -5,11 +5,12 @@ import { ReadlineParser } from '@serialport/parser-readline';
 import fs from 'node:fs';
 import os from 'node:os';
 
-const DEVICE_MODE = process.env.DEVICE_MODE ?? 'serial'; // 'serial' or 'hid'
+const PLATFORM = os.platform();
+const DEFAULT_DEVICE_MODE = PLATFORM === 'linux' ? 'hid' : 'serial';
+const DEVICE_MODE = process.env.DEVICE_MODE ?? DEFAULT_DEVICE_MODE; // 'serial' or 'hid'
 const HID_PATH = process.env.HID_PATH ?? '/dev/hidraw3';
-
-
 const SERIAL_PORT = process.env.SERIAL_PORT ?? 'COM3';
+const DEVICE_PORT = DEVICE_MODE === 'hid' ? HID_PATH : SERIAL_PORT;
 const BAUD_RATE = Number(process.env.SERIAL_BAUD ?? '9600');
 const HTTP_HOST = process.env.BRIDGE_HOST ?? '127.0.0.1';
 const HTTP_PORT = Number(process.env.BRIDGE_PORT ?? '8000');
@@ -20,7 +21,8 @@ const DEBUG_PARSED = process.argv.includes('--debug-parsed');
 const DEBUG_POLL = process.argv.includes('--debug-poll');
 
 const state = {
-  port: SERIAL_PORT,
+  mode: DEVICE_MODE,
+  port: DEVICE_PORT,
   connected: false,
   value: null,
   raw: '',
@@ -196,26 +198,37 @@ function startSerialReader() {
 
 function startHidReader() {
   let pollTimer = null;
+  let readTimer = null;
   let buffer = Buffer.alloc(0);
 
   console.log(`HID reader listening on ${HID_PATH}`);
 
   // Open HID device read/write so we can send poll commands
-  let fd;
-  try {
-    fd = fs.openSync(HID_PATH, fs.constants.O_RDWR);
-  } catch (error) {
-    state.connected = false;
-    state.error = `Failed to open HID: ${error.message}`;
-    console.error(state.error);
-    return;
-  }
+  let fd = null;
 
-  state.connected = true;
-  state.error = null;
+  const tryOpen = () => {
+    try {
+      fd = fs.openSync(HID_PATH, fs.constants.O_RDWR);
+      state.connected = true;
+      state.error = null;
+      if (DEBUG_PARSED) {
+        console.log(`HID connected: ${HID_PATH}`);
+      }
+    } catch (error) {
+      state.connected = false;
+      state.error = `Failed to open HID: ${error.message}`;
+      setTimeout(tryOpen, 1000);
+    }
+  };
+
+  tryOpen();
 
   // Function to send poll command (same POLL_COMMAND as serial)
   const sendPoll = () => {
+    if (fd === null) {
+      return;
+    }
+
     try {
       fs.writeSync(fd, POLL_COMMAND);
       if (DEBUG_POLL) {
@@ -237,6 +250,10 @@ function startHidReader() {
   const READ_CHUNK = 64;
 
   const readLoop = () => {
+    if (fd === null) {
+      return;
+    }
+
     try {
       const chunk = Buffer.alloc(READ_CHUNK);
       const bytesRead = fs.readSync(fd, chunk, 0, READ_CHUNK, null);
@@ -280,19 +297,49 @@ function startHidReader() {
     } catch (error) {
       state.connected = false;
       state.error = `HID read error: ${error.message}`;
-      console.error(state.error);
-      if (pollTimer) {
-        clearInterval(pollTimer);
+      if (fd !== null) {
+        try {
+          fs.closeSync(fd);
+        } catch {
+          // Ignore close errors on reconnect.
+        }
       }
+      fd = null;
+      tryOpen();
     }
   };
 
   // Poll for data regularly
-  setInterval(readLoop, 50);
+  readTimer = setInterval(readLoop, 50);
+
+  // Ensure timers are cleared on process exit.
+  const cleanup = () => {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    if (readTimer) {
+      clearInterval(readTimer);
+      readTimer = null;
+    }
+    if (fd !== null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // Ignore close errors during shutdown.
+      }
+      fd = null;
+    }
+  };
+
+  process.once('SIGINT', cleanup);
+  process.once('SIGTERM', cleanup);
 }
 
 
 startHttpServer();
+
+console.log(`Device mode: ${DEVICE_MODE} (${PLATFORM})`);
 
 if (DEVICE_MODE === 'hid') {
   startHidReader();

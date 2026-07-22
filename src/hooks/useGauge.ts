@@ -24,7 +24,9 @@ const useGauge = () => {
 
 				if (payload.connected && typeof payload.value === 'number' && Number.isFinite(payload.value)) {
 					setMeasuredSagittaDeviationInput(Number(payload.value));
-					setDeviceStatus('Device connected on COM3');
+					const modeLabel = payload.mode === 'hid' ? 'HID' : 'COM';
+					const portLabel = payload.port ? ` ${payload.port}` : '';
+					setDeviceStatus(`Device connected via ${modeLabel}${portLabel}`);
 				} else if (payload.error) {
 					setDeviceStatus(`Reader error: ${payload.error}`);
 				} else {
